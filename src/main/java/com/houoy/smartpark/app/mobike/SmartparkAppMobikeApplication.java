@@ -134,9 +134,9 @@ public class SmartparkAppMobikeApplication {
 
         }).listen(doorConfig.httpServerPort, res -> {
             if (res.succeeded()) {
-                logger.info("监听成功,监听端口号：");
+                logger.info("监听成功,监听端口号："+doorConfig.httpServerPort);
             } else {
-                logger.error("监听失败");
+                logger.error("监听端口"+doorConfig.httpServerPort+"失败",res.cause());
             }
         });
 

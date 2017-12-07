@@ -57,7 +57,7 @@
     </root>
 
     <logger name="serviceStatsLog" level="ERROR"/>
-    <logger name="info" level="ERROR" />
+    <logger name="info" level="INFO" />
 
 
 </configuration>

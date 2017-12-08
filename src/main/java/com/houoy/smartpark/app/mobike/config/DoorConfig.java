@@ -24,7 +24,7 @@ import java.util.List;
 public class DoorConfig {
 
     // @Value("${door}")
-    public List<Device> device;
+    private List<Device> device;
 
     private Integer tcpServerPort;
 

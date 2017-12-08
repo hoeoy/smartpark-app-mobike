@@ -18,8 +18,8 @@ public class DoorConfig {
     public Integer port;
     @Value("${door.sn}")
     public String sn;
-    @Value("${door.httpServerPort}")
-    public Integer httpServerPort;
+    @Value("${door.tcpServerPort}")
+    public Integer tcpServerPort;
 
     @Value("${weifa.ip}")
     public String weifaIP;

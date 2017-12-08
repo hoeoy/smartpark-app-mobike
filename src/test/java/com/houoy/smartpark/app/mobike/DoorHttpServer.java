@@ -30,7 +30,7 @@ public class DoorHttpServer implements CommandLineRunner {
             server.doorConfig.ip = "192.168.0.150";
             server.doorConfig.port = 8000;
             server.doorConfig.sn = "CA-3220T27010046";
-            server.doorConfig.httpServerPort = 8081;
+            server.doorConfig.tcpServerPort = 8081;
 
             server.run();
         } catch (Exception e) {
@@ -72,6 +72,6 @@ public class DoorHttpServer implements CommandLineRunner {
             }
         });
 
-        server.requestHandler(router::accept).listen(doorConfig.httpServerPort);
+        server.requestHandler(router::accept).listen(doorConfig.tcpServerPort);
     }
 }

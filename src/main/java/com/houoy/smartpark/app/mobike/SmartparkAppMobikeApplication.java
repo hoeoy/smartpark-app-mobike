@@ -78,11 +78,11 @@ public class SmartparkAppMobikeApplication {
                 logger.info("本次链接关闭");
             });
 
-        }).listen(doorConfig.httpServerPort, res -> {
+        }).listen(doorConfig.tcpServerPort, res -> {
             if (res.succeeded()) {
-                logger.info("监听成功,监听端口号：" + doorConfig.httpServerPort);
+                logger.info("监听成功,监听端口号：" + doorConfig.tcpServerPort);
             } else {
-                logger.error("监听端口" + doorConfig.httpServerPort + "失败", res.cause());
+                logger.error("监听端口" + doorConfig.tcpServerPort + "失败", res.cause());
             }
         });
 

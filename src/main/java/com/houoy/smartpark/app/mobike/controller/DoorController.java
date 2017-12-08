@@ -52,13 +52,14 @@ public class DoorController {
 
     @ApiOperation(value = "测试开门接口")
     @ApiImplicitParams({
+            @ApiImplicitParam(name = "id", value = "门禁控制板sn，如:1", required = true, dataType = "string", paramType = "query"),
             @ApiImplicitParam(name = "door1", value = "是否开门1,true or false", required = true, dataType = "boolean", paramType = "query"),
             @ApiImplicitParam(name = "door2", value = "是否开门2,true or false", required = true, dataType = "boolean", paramType = "query")
     })
     @PostMapping(value = "/openDoor", produces = "application/json;charset=UTF-8")
     @Async
-    public void openDoor(Boolean door1, Boolean door2, HttpServletResponse httpServletResponse) throws IOException {
-        tcpDoorService.openDoor(vertx, door1, door2, result -> {
+    public void openDoor(String id, Boolean door1, Boolean door2, HttpServletResponse httpServletResponse) throws IOException {
+        tcpDoorService.openDoor(vertx, id, door1, door2, result -> {
             OutputStream outputStream = null;
             try {
                 outputStream = httpServletResponse.getOutputStream();

@@ -15,6 +15,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.util.StringUtils;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 @SpringBootApplication
 @EnableAutoConfiguration
 @EnableAsync
@@ -34,55 +37,70 @@ public class SmartparkAppMobikeApplication {
         tcpserver.connectHandler(socket -> {
             socket.handler(buffer -> {
                 String qrString = buffer.toString();
-                String qr = "";
+                String vgdecoderresult = "";
+                String deviceId = "";
+                String doorId = "";
                 Boolean openDoor1 = false;
                 Boolean openDoor2 = false;
 
                 if (!StringUtils.isEmpty(qrString)) {
-                    if (qrString.startsWith("door")) {
-                        if (qrString.contains("door1_")) {
-                            qr = qrString.split("door1_")[1];
+                    Pattern p = Pattern.compile("device(\\d)_door(\\d)_");
+                    Matcher m = p.matcher(qrString);
+                    while (m.find()) {
+                        deviceId = m.group(1);
+                        doorId = m.group(2);
+                        break;
+                    }
+
+                    if (StringUtils.isEmpty(deviceId) || StringUtils.isEmpty(doorId)) {
+                        logger.info("系统外非法格式二维码：" + qrString);
+                        return;
+                    } else {
+                        vgdecoderresult = qrString.split("device" + deviceId + "_door" + doorId + "_")[1];
+                        if (doorId.equals("1")) {
                             openDoor1 = true;
-                        } else if (qrString.contains("door2_")) {
-                            qr = qrString.split("door2_")[1];
+                        } else if (doorId.equals("2")) {
                             openDoor2 = true;
                         }
-                    } else {
-                        logger.info("系统外非法格式二维码：" + qrString);
                     }
+
+                    final Boolean finalOpenDoor1 = openDoor1;
+                    final Boolean finalOpenDoor2 = openDoor2;
+                    final String finalDeviceId = deviceId;
+                    final String finalVgdecoderresult = vgdecoderresult;
+
+                    Gson gson = new Gson();
+                    //发送http请求，验证此二维码是否合法，可以开门
+                    tcpDoorService.weifaRequest(vertx, vgdecoderresult, result -> {
+                        ResultVO resultVO = gson.fromJson(result, ResultVO.class);//对于javabean直接给出class实例
+                        if (resultVO != null && resultVO.getResult().equals("0")) {//验证通过
+                            tcpDoorService.openDoor(vertx, finalDeviceId, finalOpenDoor1, finalOpenDoor2, isOpen -> {
+                                if (isOpen) {
+                                    //开门成功
+                                } else {
+                                    //开门失败
+                                }
+                            });
+                        } else {
+                            logger.info(resultVO.getMsg() + ": " + finalVgdecoderresult);
+                        }
+                    }, error -> {
+
+                    });
+                } else {
+                    logger.info("qrString不能为null");
+                    return;
                 }
-                final Boolean finalOpenDoor = openDoor2;
-                final Boolean finalOpenDoor1 = openDoor1;
-                String vgdecoderresult = qr;
-
-                Gson gson = new Gson();
-                //发送http请求，验证此二维码是否合法，可以开门
-                tcpDoorService.weifaRequest(vertx,vgdecoderresult,result->{
-                    ResultVO resultVO = gson.fromJson(result, ResultVO.class);//对于javabean直接给出class实例
-                    if (resultVO != null && resultVO.getResult().equals("0")) {//验证通过
-                        tcpDoorService.openDoor(vertx, finalOpenDoor1, finalOpenDoor, isOpen -> {
-                            if (isOpen) {
-                                //开门成功
-                            } else {
-                                //开门失败
-                            }
-                        });
-                    } else {
-                        logger.info(resultVO.getMsg() + ": " + vgdecoderresult);
-                    }
-                },error->{
-
-                });
             });
             socket.closeHandler(v -> {
                 logger.info("本次链接关闭");
             });
 
-        }).listen(doorConfig.tcpServerPort, res -> {
+        }).listen(doorConfig.getTcpServerPort(), res -> {
             if (res.succeeded()) {
-                logger.info("监听成功,监听端口号：" + doorConfig.tcpServerPort);
+                logger.info("监听成功,监听端口号：" + doorConfig.getTcpServerPort());
             } else {
-                logger.error("监听端口" + doorConfig.tcpServerPort + "失败", res.cause());
+                logger.error("监听端口" + doorConfig.getTcpServerPort() + "失败", res.cause());
             }
         });
 

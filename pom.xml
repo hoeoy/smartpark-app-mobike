@@ -5,7 +5,7 @@
 
     <groupId>com.houoy</groupId>
     <artifactId>smartpark-app-mobike</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0</version>
     <packaging>jar</packaging>
 
     <name>smartpark-app-mobike</name>

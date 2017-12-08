@@ -23,14 +23,19 @@ public class TCPDoorServiceImpl implements TCPDoorService {
     private DoorConfig doorConfig;
 
     @Override
-    public Boolean openDoor(Vertx vertx, Boolean door1, Boolean door2, Handler<Boolean> responseHandler) {
+    public void openDoor(Vertx vertx, Boolean door1, Boolean door2, Handler<Boolean> responseHandler) {
         try {
             DriverTCPClient tcpClient = DoorDriver.getInstance(vertx, doorConfig.ip, doorConfig.port, doorConfig.sn);
             try {
                 tcpClient.openDoor(door1, door1, false, false, success -> {
-                    logger.error("Success open door" + doorConfig.ip + " " + doorConfig.port + " " + doorConfig.sn);
+                    if (success) {
+                        logger.info("Success open door" + doorConfig.ip + " " + doorConfig.port + " " + doorConfig.sn);
+                    } else {
+                        logger.error("Fail open door" + doorConfig.ip + " " + doorConfig.port + " " + doorConfig.sn);
+                    }
+
                     if (responseHandler != null) {
-                        responseHandler.handle(true);
+                        responseHandler.handle(success);
                     }
                 });
             } catch (IOException e) {
@@ -45,12 +50,10 @@ public class TCPDoorServiceImpl implements TCPDoorService {
                 responseHandler.handle(false);
             }
         }
-
-        return true;
     }
 
     @Override
-    public Boolean weifaRequest(Vertx vertx, String vgdecoderresult, Handler<String> responseHandler, Handler<String> errorHandler) {
+    public void weifaRequest(Vertx vertx, String vgdecoderresult, Handler<String> responseHandler, Handler<String> errorHandler) {
         //发送http请求，验证此二维码是否合法，可以开门
         String path = "/api/door?qrcode=" + vgdecoderresult;// + "&opentime=" + System.currentTimeMillis();
         vertx.createHttpClient().getNow(doorConfig.weifaPort, doorConfig.weifaIP, path, resp -> {
@@ -58,7 +61,5 @@ public class TCPDoorServiceImpl implements TCPDoorService {
                 responseHandler.handle(body.toString());
             });
         });
-
-        return true;
     }
 }

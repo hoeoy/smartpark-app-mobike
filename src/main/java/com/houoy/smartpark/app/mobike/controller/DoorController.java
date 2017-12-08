@@ -10,12 +10,15 @@ import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 
 /**
  * 权限管理
@@ -34,6 +37,8 @@ public class DoorController {
     @Autowired
     private Vertx vertx;
 
+
+    private Gson gson = new Gson();
 //    @ApiOperation(value = "模拟微发的接口：门禁开门询问访客系统接口 ")
 //    @ApiImplicitParams({
 //            @ApiImplicitParam(name = "qrcode", value = "二维码字符串(访客系统的二维码code)格式QR_十到十三位数字",
@@ -51,25 +56,82 @@ public class DoorController {
             @ApiImplicitParam(name = "door2", value = "是否开门2,true or false", required = true, dataType = "boolean", paramType = "query")
     })
     @PostMapping(value = "/openDoor", produces = "application/json;charset=UTF-8")
-    public Boolean openDoor(Boolean door1, Boolean door2) throws IOException {
-        return tcpDoorService.openDoor(vertx, door1, door2, null);
+    @Async
+    public void openDoor(Boolean door1, Boolean door2, HttpServletResponse httpServletResponse) throws IOException {
+        tcpDoorService.openDoor(vertx, door1, door2, result -> {
+            OutputStream outputStream = null;
+            try {
+                outputStream = httpServletResponse.getOutputStream();
+                if (result) {
+                    byte[] dataByteArr = gson.toJson(new ResultVO()).getBytes("UTF-8");
+                    outputStream.write(dataByteArr);
+                } else {
+                    byte[] dataByteArr = gson.toJson(new ResultVO("", "false")).getBytes("UTF-8");
+                    outputStream.write(dataByteArr);
+                }
+            } catch (IOException e) {
+                logger.info("openDoor fail:", e);
+                byte[] dataByteArr = new byte[0];
+                try {
+                    dataByteArr = gson.toJson(new ResultVO("", "false")).getBytes("UTF-8");
+                    outputStream.write(dataByteArr);
+                } catch (UnsupportedEncodingException e1) {
+                    logger.warn("", e1);
+                } catch (IOException e1) {
+                    logger.warn("", e1);
+                }
+            } finally {
+                try {
+                    outputStream.flush();
+                    outputStream.close();
+                } catch (IOException e) {
+                    logger.warn("", e);
+                }
+            }
+        });
     }
 
     @ApiOperation(value = "测试第三方二维码服务接口")
     @ApiImplicitParam(name = "vgdecoderresult", value = "二维码，如：QR_1511854297716", required = true, dataType = "string", paramType = "query")
     @PostMapping(value = "/testWeiFa", produces = "application/json;charset=UTF-8")
-    public String testWeiFa(String vgdecoderresult) throws IOException {
-        Gson gson = new Gson();
-        tcpDoorService.weifaRequest(vertx,vgdecoderresult,result->{
-            ResultVO resultVO = gson.fromJson(result, ResultVO.class);//对于javabean直接给出class实例
-            if (resultVO != null && resultVO.getResult().equals("0")) {//验证通过
-                logger.info(resultVO.getMsg() + ": " + vgdecoderresult);
-            } else {
-                logger.info(resultVO.getMsg() + ": " + vgdecoderresult);
+    @Async
+    public void testWeiFa(String vgdecoderresult, HttpServletResponse httpServletResponse) throws IOException {
+        httpServletResponse.setHeader("content-type", "text/html;charset=UTF-8");
+        tcpDoorService.weifaRequest(vertx, vgdecoderresult, result -> {
+            OutputStream outputStream = null;
+            try {
+                outputStream = httpServletResponse.getOutputStream();
+                ResultVO resultVO = gson.fromJson(result, ResultVO.class);//对于javabean直接给出class实例
+                if (resultVO != null && resultVO.getResult().equals("0")) {//验证通过
+                    logger.info(resultVO.getMsg() + ": " + vgdecoderresult);
+                    byte[] dataByteArr = gson.toJson(new ResultVO()).getBytes("UTF-8");
+                    outputStream.write(dataByteArr);
+                } else {
+                    logger.info(resultVO.getMsg() + ": " + vgdecoderresult);
+                    byte[] dataByteArr = gson.toJson(new ResultVO("", "false")).getBytes("UTF-8");
+                    outputStream.write(dataByteArr);
+                }
+            } catch (IOException e) {
+                logger.info("openDoor fail:", e);
+                byte[] dataByteArr = new byte[0];
+                try {
+                    dataByteArr = gson.toJson(new ResultVO("", "false")).getBytes("UTF-8");
+                    outputStream.write(dataByteArr);
+                } catch (UnsupportedEncodingException e1) {
+                    logger.warn("", e1);
+                } catch (IOException e1) {
+                    logger.warn("", e1);
+                }
+            } finally {
+                try {
+                    outputStream.flush();
+                    outputStream.close();
+                } catch (IOException e) {
+                    logger.warn("", e);
+                }
             }
-        },error->{
+        }, error -> {
 
         });
-        return "";
     }
 }
